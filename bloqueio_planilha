@@ -1,0 +1,82 @@
+# Este código lê uma lista de emails
+##Funcionalidades
+"Gerenciamento Automático de Acesso: Permite desabilitar ou restaurar o acesso de edição para uma lista de e-mails com base em períodos de tempo configurados.
+Bloqueio Temporário: Define um período específico em que os usuários não poderão editar as planilhas, mantendo-os apenas como visualizadores.
+Verificação Automática de Datas: Um trigger é configurado para monitorar automaticamente as datas e aplicar o bloqueio/restauração conforme necessário.
+Flexibilidade: O script suporta múltiplas planilhas, cada uma com uma guia dedicada de e-mails, e uma planilha centralizada para configurar as datas."
+
+function gerenciarBloqueio(){
+  var planilhaDataHora = SpreadsheetApp.getActiveSpreadsheet();
+  var guiaDataHora = planilhaDataHora.getSheetByName('Data/Hora');
+
+  //Datas
+  var dataBloqueio = new Date(guiaDataHora.getRange('A2').getValue());
+  var dataRestauracao = new Date(guiaDataHora.getRange('B2').getValue());
+  var agora = new Date
+
+  Logger.log('Data de Bloqueio '+ dataBloqueio);
+  Logger.log('Data de Restauração '+ dataRestauracao);
+  Logger.log('Data atual '+ agora);
+
+  //Condicional para ver o período de bloqueio
+  if (agora >= dataBloqueio && agora <= dataRestauracao) {
+    aplicarBloqueio();  
+  } else if (agora >= dataRestauracao){
+    restaurarAcesso();
+  } else{
+    Logger.log('O período de bloqueio/restauração ainda não começou')
+  }
+}
+
+function aplicarBloqueio(){
+  var planilhasBloqueadas = [
+    '1qXgw_KZycDhJen7LrIpPaZwEbJUvBXV_O-xXixwClZ4',
+  ]
+
+  for (var i = 0; i < planilhasBloqueadas.length; i++){
+    var planilhaBloqueada = SpreadsheetApp.openById(planilhasBloqueadas[i]);
+    var guiaEmails = planilhaBloqueada.getSheetByName('Emails');
+    var emails = guiaEmails.getRange(2,1,guiaEmails.getLastRow()-1, 1).getValues().flat();
+
+    for (var j = 0; j < emails.length; j++){
+      var email = emails[j];
+      try {
+        planilhaBloqueada.removeEditor(email);
+        planilhaBloqueada.addViewer(email);
+        Logger.log('Acesso de edição desabilitado para ' + email);
+      } catch(e){
+        Logger.log('Erro ao desabilitar a edição ' + email + '-' + e.message);
+      }
+    }
+  }
+
+  var planilhaDataHora = SpreadsheetApp.getActiveSpreadsheet();
+  var guiaDataHora = planilhaDataHora.getSheetByName('Data/Hora');
+  var dataRestauracao = new Date(guiaDataHora.getRange('B2').getValue());
+
+  ScriptApp.newTrigger('restaurarAcesso').timeBased().at(dataRestauracao).create();
+  Logger.log('Acesso de edição será restaurado em '+ dataRestauracao);
+}
+
+function restaurarAcesso(){
+  var planilhasBloqueadas = [
+    '1qXgw_KZycDhJen7LrIpPaZwEbJUvBXV_O-xXixwClZ4',
+  ]
+
+  for (var i = 0; i < planilhasBloqueadas.length; i++){
+    var planilhaBloqueada = SpreadsheetApp.openById(planilhasBloqueadas[i]);
+    var guiaEmails = planilhaBloqueada.getSheetByName('Emails');
+    var emails = guiaEmails.getRange(2,1,guiaEmails.getLastRow()-1, 1).getValues().flat();
+
+    for (var j = 0; j < emails.length; j++){
+      var email = emails[j];
+      try {
+        planilhaBloqueada.addEditor(email);
+        Logger.log(planilhaBloqueada.addEditor('Acesso a edição foi restaurado para ' + email));
+      } catch(e){
+        Logger.log('Erro ao restaurar editor: '+ email + ' - '+ e.message);
+      }
+    }
+  }
+  Logger.log('O acesso de edição foi restaurado para os emails listados.')
+}
